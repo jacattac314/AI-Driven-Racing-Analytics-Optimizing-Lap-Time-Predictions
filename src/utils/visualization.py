@@ -139,7 +139,9 @@ def plot_model_comparison(results: pd.DataFrame, metric: str = 'MAE',
     """
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    models = results['model']
+    # Handle both 'model' and 'Model' column names
+    model_col = 'model' if 'model' in results.columns else 'Model'
+    models = results[model_col]
     values = results[metric]
 
     bars = ax.bar(models, values, edgecolor='black', alpha=0.7)

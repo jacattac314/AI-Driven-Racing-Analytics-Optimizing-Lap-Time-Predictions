@@ -47,18 +47,24 @@ class XGBoostModel(BaseModel):
         """
         self.logger.info("Training XGBoost model")
 
+        self.model = xgb.XGBRegressor(**self.params)
+
         # Early stopping if validation set provided
         if X_val is not None and y_val is not None:
             eval_set = [(X_train, y_train), (X_val, y_val)]
-            self.model = xgb.XGBRegressor(**self.params)
-            self.model.fit(
-                X_train, y_train,
-                eval_set=eval_set,
-                early_stopping_rounds=10,
-                verbose=False
-            )
+            try:
+                # Try newer XGBoost API with callbacks
+                from xgboost.callback import EarlyStopping
+                self.model.fit(
+                    X_train, y_train,
+                    eval_set=eval_set,
+                    callbacks=[EarlyStopping(rounds=10)],
+                    verbose=False
+                )
+            except:
+                # Fallback to simpler training
+                self.model.fit(X_train, y_train)
         else:
-            self.model = xgb.XGBRegressor(**self.params)
             self.model.fit(X_train, y_train)
 
         self.is_trained = True
