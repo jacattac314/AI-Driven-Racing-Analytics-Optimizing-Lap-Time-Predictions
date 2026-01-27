@@ -340,6 +340,12 @@ Results are saved in `results/`:
 - **plots/**: Visualizations (predictions vs actual, residuals, comparison)
 - **reports/**: Statistical analysis reports
 
+## Documentation
+
+- **[README.md](README.md)** - Complete technical documentation and setup guide
+- **[SHOWCASE.md](SHOWCASE.md)** - Project results, visualizations, and achievements
+- **[MIRO.md](MIRO.md)** - Visual planning guide for architecture diagrams and workflow mapping
+
 ## Troubleshooting
 
 **API Rate Limiting**: Adjust `rate_limit` in config.yaml
