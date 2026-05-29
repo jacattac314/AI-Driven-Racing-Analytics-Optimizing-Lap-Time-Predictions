@@ -79,6 +79,53 @@ class NeuralNetModel(BaseModel):
 
         return model
 
+    def _get_callbacks(self, X_val):
+        """
+        Get training callbacks.
+
+        Args:
+            X_val: Validation features to determine monitor metric
+
+        Returns:
+            List of Keras callbacks
+        """
+        monitor = 'val_loss' if X_val is not None else 'loss'
+        return [
+            EarlyStopping(
+                monitor=monitor,
+                patience=self.params['early_stopping_patience'],
+                restore_best_weights=True,
+                verbose=0
+            ),
+            ReduceLROnPlateau(
+                monitor=monitor,
+                factor=0.5,
+                patience=5,
+                verbose=0
+            )
+        ]
+
+    def _prepare_validation_data(self, X_val, y_val):
+        """
+        Prepare validation data and split parameters.
+
+        Args:
+            X_val: Validation features
+            y_val: Validation target
+
+        Returns:
+            Tuple of (validation_data, validation_split)
+        """
+        if X_val is not None and y_val is not None:
+            X_val_scaled = self.scaler.transform(X_val)
+            validation_data = (X_val_scaled, y_val)
+            validation_split = None
+        else:
+            validation_data = None
+            validation_split = self.params['validation_split']
+
+        return validation_data, validation_split
+
     def train(self, X_train, y_train, X_val=None, y_val=None, **kwargs):
         """
         Train neural network model.
@@ -100,29 +147,10 @@ class NeuralNetModel(BaseModel):
         self.model = self._build_model(input_dim)
 
         # Callbacks
-        callbacks = [
-            EarlyStopping(
-                monitor='val_loss' if X_val is not None else 'loss',
-                patience=self.params['early_stopping_patience'],
-                restore_best_weights=True,
-                verbose=0
-            ),
-            ReduceLROnPlateau(
-                monitor='val_loss' if X_val is not None else 'loss',
-                factor=0.5,
-                patience=5,
-                verbose=0
-            )
-        ]
+        callbacks = self._get_callbacks(X_val)
 
         # Prepare validation data
-        if X_val is not None and y_val is not None:
-            X_val_scaled = self.scaler.transform(X_val)
-            validation_data = (X_val_scaled, y_val)
-            validation_split = None
-        else:
-            validation_data = None
-            validation_split = self.params['validation_split']
+        validation_data, validation_split = self._prepare_validation_data(X_val, y_val)
 
         # Train model
         history = self.model.fit(
