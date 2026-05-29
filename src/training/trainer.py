@@ -68,6 +68,41 @@ class ModelTrainer:
 
         return model_class(model_config)
 
+    def _is_model_enabled(self, model_type: str) -> bool:
+        """Check if model is enabled in config."""
+        model_config = self.config.get('models', {}).get(model_type, {})
+        return model_config.get('enabled', True)
+
+    def _execute_training(self, model, X_train, y_train, X_val, y_val) -> float:
+        """Execute training and return training time."""
+        start_time = time.time()
+        model.train(X_train, y_train, X_val, y_val)
+        return time.time() - start_time
+
+    def _evaluate_model(self, model, X_val, y_val) -> dict:
+        """Evaluate model and return metrics."""
+        if X_val is not None and y_val is not None:
+            return model.evaluate(X_val, y_val)
+        return {}
+
+    def _record_results(self, model_type: str, model, training_time: float, val_metrics: dict):
+        """Store model and training results."""
+        self.models[model_type] = model
+        self.training_results[model_type] = {
+            'training_time': training_time,
+            'validation_metrics': val_metrics,
+            'model_params': model.params if hasattr(model, 'params') else {}
+        }
+
+    def _log_training_success(self, model_type: str, training_time: float, val_metrics: dict):
+        """Log successful training with MAE if available."""
+        mae = val_metrics.get('mae')
+        mae_str = f"{mae:.4f}" if mae is not None else "N/A"
+        self.logger.info(
+            f"{model_type} training completed in {training_time:.2f}s. "
+            f"Val MAE: {mae_str}"
+        )
+
     def train_single_model(self, model_type: str, X_train, y_train,
                           X_val=None, y_val=None, tune_hyperparameters=False):
         """
@@ -86,45 +121,18 @@ class ModelTrainer:
         """
         self.logger.info(f"Training {model_type} model")
 
-        # Check if model is enabled
-        model_config = self.config['models'].get(model_type, {})
-        if not model_config.get('enabled', True):
+        if not self._is_model_enabled(model_type):
             self.logger.info(f"{model_type} is disabled in config")
             return None
 
-        # Get model instance
         model = self.get_model_instance(model_type)
 
-        # Record start time
-        start_time = time.time()
-
         try:
-            # Train model
-            model.train(X_train, y_train, X_val, y_val)
+            training_time = self._execute_training(model, X_train, y_train, X_val, y_val)
+            val_metrics = self._evaluate_model(model, X_val, y_val)
 
-            # Training time
-            training_time = time.time() - start_time
-
-            # Evaluate on validation set
-            if X_val is not None and y_val is not None:
-                val_metrics = model.evaluate(X_val, y_val)
-            else:
-                val_metrics = {}
-
-            # Store model
-            self.models[model_type] = model
-
-            # Store training results
-            self.training_results[model_type] = {
-                'training_time': training_time,
-                'validation_metrics': val_metrics,
-                'model_params': model.params if hasattr(model, 'params') else {}
-            }
-
-            self.logger.info(
-                f"{model_type} training completed in {training_time:.2f}s. "
-                f"Val MAE: {val_metrics.get('mae', 'N/A'):.4f}"
-            )
+            self._record_results(model_type, model, training_time, val_metrics)
+            self._log_training_success(model_type, training_time, val_metrics)
 
             return model
 
