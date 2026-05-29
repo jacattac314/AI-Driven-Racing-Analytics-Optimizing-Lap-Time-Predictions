@@ -55,35 +55,22 @@ class FeatureEngineer:
         self.logger.info("Starting feature engineering")
         original_rows = len(df)
 
-        # Driver features
-        if self.enabled_features.get('driver_features', True):
-            self.logger.info("Creating driver features")
-            df = self.driver_engineer.create_all_driver_features(df)
+        # Define feature steps to avoid repetition
+        feature_steps = [
+            ('driver_features', 'driver', self.driver_engineer.create_all_driver_features),
+            ('track_features', 'track', self.track_engineer.create_all_track_features),
+            ('historical_features', 'historical', self.historical_engineer.create_all_historical_features),
+            ('weather_features', 'weather', self.weather_engineer.create_all_weather_features),
+            ('tire_features', 'tire', self.tire_engineer.create_all_tire_features),
+            # Temporal features (should be last as they depend on target)
+            ('temporal_features', 'temporal', lambda x: self.temporal_engineer.create_all_temporal_features(x, target_col))
+        ]
 
-        # Track features
-        if self.enabled_features.get('track_features', True):
-            self.logger.info("Creating track features")
-            df = self.track_engineer.create_all_track_features(df)
-
-        # Historical features
-        if self.enabled_features.get('historical_features', True):
-            self.logger.info("Creating historical features")
-            df = self.historical_engineer.create_all_historical_features(df)
-
-        # Weather features
-        if self.enabled_features.get('weather_features', True):
-            self.logger.info("Creating weather features")
-            df = self.weather_engineer.create_all_weather_features(df)
-
-        # Tire features
-        if self.enabled_features.get('tire_features', True):
-            self.logger.info("Creating tire features")
-            df = self.tire_engineer.create_all_tire_features(df)
-
-        # Temporal features (should be last as they depend on target)
-        if self.enabled_features.get('temporal_features', True):
-            self.logger.info("Creating temporal features")
-            df = self.temporal_engineer.create_all_temporal_features(df, target_col)
+        # Apply feature engineering steps sequentially
+        for key, name, func in feature_steps:
+            if self.enabled_features.get(key, True):
+                self.logger.info(f"Creating {name} features")
+                df = func(df)
 
         final_rows = len(df)
         if final_rows != original_rows:
