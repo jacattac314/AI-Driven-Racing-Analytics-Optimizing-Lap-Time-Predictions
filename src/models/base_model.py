@@ -83,6 +83,8 @@ class BaseModel(ABC):
         """
         Save model to disk.
 
+        WARNING: joblib use pickle for serialization. Only save data you trust.
+
         Args:
             filepath: Path to save model
         """
@@ -95,6 +97,10 @@ class BaseModel(ABC):
     def load_model(self, filepath: str):
         """
         Load model from disk.
+
+        WARNING: joblib uses pickle for serialization and is not secure.
+        Only load data you trust. Never load data that could have come
+        from an untrusted source, or that could have been tampered with.
 
         Args:
             filepath: Path to load model from

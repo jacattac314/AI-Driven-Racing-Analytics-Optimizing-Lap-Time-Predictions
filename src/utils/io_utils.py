@@ -38,14 +38,25 @@ def load_json(filepath: str) -> Dict:
 
 
 def save_pickle(obj: Any, filepath: str):
-    """Save object to pickle file."""
+    """
+    Save object to pickle file.
+
+    WARNING: The pickle module is not secure. Only pickle data you trust.
+    """
     Path(filepath).parent.mkdir(parents=True, exist_ok=True)
     with open(filepath, 'wb') as f:
         pickle.dump(obj, f)
 
 
 def load_pickle(filepath: str) -> Any:
-    """Load object from pickle file."""
+    """
+    Load object from pickle file.
+
+    WARNING: The pickle module is not secure. Only unpickle data you trust.
+    It is possible to construct malicious pickle data which will execute
+    arbitrary code during unpickling. Never unpickle data that could have
+    come from an untrusted source, or that could have been tampered with.
+    """
     with open(filepath, 'rb') as f:
         return pickle.load(f)
 

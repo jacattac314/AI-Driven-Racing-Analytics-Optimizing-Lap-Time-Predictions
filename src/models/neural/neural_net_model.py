@@ -167,6 +167,8 @@ class NeuralNetModel(BaseModel):
         """
         Save neural network model.
 
+        WARNING: joblib use pickle for serialization of the scaler. Only save data you trust.
+
         Args:
             filepath: Path to save model
         """
@@ -186,6 +188,10 @@ class NeuralNetModel(BaseModel):
     def load_model(self, filepath: str):
         """
         Load neural network model.
+
+        WARNING: joblib uses pickle for serialization of the scaler and is not secure.
+        Only load data you trust. Never load data that could have come
+        from an untrusted source, or that could have been tampered with.
 
         Args:
             filepath: Path to load model from
