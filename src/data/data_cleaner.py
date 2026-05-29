@@ -120,6 +120,47 @@ class DataCleaner:
 
         return df
 
+    def _merge_base_results(self, results_df: pd.DataFrame, races_df: pd.DataFrame) -> pd.DataFrame:
+        """Merge results with races info."""
+        return results_df.merge(
+            races_df,
+            on=['season', 'round'],
+            how='left',
+            suffixes=('', '_race')
+        )
+
+    def _merge_qualifying(self, merged_df: pd.DataFrame, qualifying_df: pd.DataFrame) -> pd.DataFrame:
+        """Merge qualifying data if available."""
+        if qualifying_df is None:
+            return merged_df
+
+        return merged_df.merge(
+            qualifying_df,
+            on=['season', 'round', 'driver_id'],
+            how='left',
+            suffixes=('', '_quali')
+        )
+
+    def _apply_lap_times_base(self, results_df: pd.DataFrame, races_df: pd.DataFrame,
+                              lap_times_df: pd.DataFrame) -> pd.DataFrame:
+        """Use lap times as base and merge race/results info."""
+        if lap_times_df is None:
+            return None
+
+        merged = lap_times_df.merge(
+            races_df,
+            on=['season', 'round'],
+            how='left'
+        )
+
+        merged = merged.merge(
+            results_df[['season', 'round', 'driver_id', 'constructor_id',
+                      'grid', 'position', 'points', 'status']],
+            on=['season', 'round', 'driver_id'],
+            how='left'
+        )
+        return merged
+
     def merge_race_data(self, races_df: pd.DataFrame, results_df: pd.DataFrame,
                        qualifying_df: pd.DataFrame = None,
                        pit_stops_df: pd.DataFrame = None,
@@ -140,37 +181,15 @@ class DataCleaner:
         self.logger.info("Merging race data")
 
         # Start with results and merge races info
-        merged = results_df.merge(
-            races_df,
-            on=['season', 'round'],
-            how='left',
-            suffixes=('', '_race')
-        )
+        merged = self._merge_base_results(results_df, races_df)
 
         # Merge qualifying if available
-        if qualifying_df is not None:
-            merged = merged.merge(
-                qualifying_df,
-                on=['season', 'round', 'driver_id'],
-                how='left',
-                suffixes=('', '_quali')
-            )
+        merged = self._merge_qualifying(merged, qualifying_df)
 
         # If lap times available, use as base
-        if lap_times_df is not None:
-            # Merge race and results info into lap times
-            merged = lap_times_df.merge(
-                races_df,
-                on=['season', 'round'],
-                how='left'
-            )
-
-            merged = merged.merge(
-                results_df[['season', 'round', 'driver_id', 'constructor_id',
-                          'grid', 'position', 'points', 'status']],
-                on=['season', 'round', 'driver_id'],
-                how='left'
-            )
+        lap_times_merged = self._apply_lap_times_base(results_df, races_df, lap_times_df)
+        if lap_times_merged is not None:
+            merged = lap_times_merged
 
         self.logger.info(f"Merged data: {len(merged)} rows")
 
