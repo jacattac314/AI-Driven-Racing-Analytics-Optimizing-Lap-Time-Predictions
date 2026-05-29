@@ -7,9 +7,6 @@ import numpy as np
 class TireFeatureEngineer:
     """Generate tire-related features"""
 
-    def __init__(self):
-        pass
-
     def create_pit_stop_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Create pit stop related features.
