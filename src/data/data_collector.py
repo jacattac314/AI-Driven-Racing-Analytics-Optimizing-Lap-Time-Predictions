@@ -111,20 +111,18 @@ class ErgastAPIClient:
             self.logger.warning(f"No races found for season {season}")
             return pd.DataFrame()
 
-        race_data = []
-        for race in races:
-            race_data.append({
-                'season': season,
-                'round': int(race['round']),
-                'race_name': race['raceName'],
-                'circuit_id': race['Circuit']['circuitId'],
-                'circuit_name': race['Circuit']['circuitName'],
-                'country': race['Circuit']['Location']['country'],
-                'locality': race['Circuit']['Location']['locality'],
-                'date': race['date'],
-                'time': race.get('time', ''),
-                'url': race['url']
-            })
+        race_data = [{
+            'season': season,
+            'round': int(race['round']),
+            'race_name': race['raceName'],
+            'circuit_id': race['Circuit']['circuitId'],
+            'circuit_name': race['Circuit']['circuitName'],
+            'country': race['Circuit']['Location']['country'],
+            'locality': race['Circuit']['Location']['locality'],
+            'date': race['date'],
+            'time': race.get('time', ''),
+            'url': race['url']
+        } for race in races]
 
         return pd.DataFrame(race_data)
 
@@ -151,26 +149,24 @@ class ErgastAPIClient:
 
         results = races[0]['Results']
 
-        result_data = []
-        for result in results:
-            result_data.append({
-                'season': season,
-                'round': round_num,
-                'driver_id': result['Driver']['driverId'],
-                'driver_code': result['Driver'].get('code', ''),
-                'driver_number': result['Driver'].get('permanentNumber', ''),
-                'constructor_id': result['Constructor']['constructorId'],
-                'grid': int(result['grid']),
-                'position': result.get('position', None),
-                'position_text': result['positionText'],
-                'points': float(result['points']),
-                'laps': int(result['laps']),
-                'status': result['status'],
-                'time': result.get('Time', {}).get('time', None),
-                'milliseconds': result.get('Time', {}).get('millis', None),
-                'fastest_lap': result.get('FastestLap', {}).get('lap', None),
-                'fastest_lap_time': result.get('FastestLap', {}).get('Time', {}).get('time', None)
-            })
+        result_data = [{
+            'season': season,
+            'round': round_num,
+            'driver_id': result['Driver']['driverId'],
+            'driver_code': result['Driver'].get('code', ''),
+            'driver_number': result['Driver'].get('permanentNumber', ''),
+            'constructor_id': result['Constructor']['constructorId'],
+            'grid': int(result['grid']),
+            'position': result.get('position', None),
+            'position_text': result['positionText'],
+            'points': float(result['points']),
+            'laps': int(result['laps']),
+            'status': result['status'],
+            'time': result.get('Time', {}).get('time', None),
+            'milliseconds': result.get('Time', {}).get('millis', None),
+            'fastest_lap': result.get('FastestLap', {}).get('lap', None),
+            'fastest_lap_time': result.get('FastestLap', {}).get('Time', {}).get('time', None)
+        } for result in results]
 
         return pd.DataFrame(result_data)
 
@@ -197,18 +193,16 @@ class ErgastAPIClient:
 
         qualifying = races[0]['QualifyingResults']
 
-        quali_data = []
-        for result in qualifying:
-            quali_data.append({
-                'season': season,
-                'round': round_num,
-                'driver_id': result['Driver']['driverId'],
-                'constructor_id': result['Constructor']['constructorId'],
-                'position': int(result['position']),
-                'q1': result.get('Q1', None),
-                'q2': result.get('Q2', None),
-                'q3': result.get('Q3', None)
-            })
+        quali_data = [{
+            'season': season,
+            'round': round_num,
+            'driver_id': result['Driver']['driverId'],
+            'constructor_id': result['Constructor']['constructorId'],
+            'position': int(result['position']),
+            'q1': result.get('Q1', None),
+            'q2': result.get('Q2', None),
+            'q3': result.get('Q3', None)
+        } for result in qualifying]
 
         return pd.DataFrame(quali_data)
 
@@ -235,17 +229,15 @@ class ErgastAPIClient:
 
         pit_stops = races[0]['PitStops']
 
-        pit_data = []
-        for stop in pit_stops:
-            pit_data.append({
-                'season': season,
-                'round': round_num,
-                'driver_id': stop['driverId'],
-                'stop': int(stop['stop']),
-                'lap': int(stop['lap']),
-                'time': stop['time'],
-                'duration': stop['duration']
-            })
+        pit_data = [{
+            'season': season,
+            'round': round_num,
+            'driver_id': stop['driverId'],
+            'stop': int(stop['stop']),
+            'lap': int(stop['lap']),
+            'time': stop['time'],
+            'duration': stop['duration']
+        } for stop in pit_stops]
 
         return pd.DataFrame(pit_data)
 
