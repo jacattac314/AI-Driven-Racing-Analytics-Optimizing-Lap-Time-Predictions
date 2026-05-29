@@ -1,7 +1,6 @@
 """Logging utilities for the pipeline"""
 
 import logging
-import os
 from pathlib import Path
 
 
