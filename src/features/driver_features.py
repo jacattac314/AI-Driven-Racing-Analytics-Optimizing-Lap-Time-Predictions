@@ -25,14 +25,10 @@ class DriverFeatureEngineer:
         df = df.sort_values(['driver_id', 'season', 'round'])
 
         # Career wins (cumulative)
-        df['career_wins'] = df.groupby('driver_id')['position'].apply(
-            lambda x: (x == 1).cumsum()
-        )
+        df['career_wins'] = (df['position'] == 1).groupby(df['driver_id']).cumsum()
 
         # Career podiums (cumulative)
-        df['career_podiums'] = df.groupby('driver_id')['position_numeric'].apply(
-            lambda x: (x <= 3).cumsum()
-        )
+        df['career_podiums'] = (df['position_numeric'] <= 3).groupby(df['driver_id']).cumsum()
 
         # Career points (cumulative)
         if 'points' in df.columns:
