@@ -298,6 +298,40 @@ class ErgastAPIClient:
 
         return pd.DataFrame(all_laps)
 
+    def _collect_race_data(self, season: int, round_num: int) -> Dict[str, pd.DataFrame]:
+        """Collect all data for a specific race."""
+        race_data = {}
+
+        # Results
+        results_df = self.fetch_results(season, round_num)
+        if not results_df.empty:
+            race_data['results'] = results_df
+
+        # Qualifying
+        qualifying_df = self.fetch_qualifying(season, round_num)
+        if not qualifying_df.empty:
+            race_data['qualifying'] = qualifying_df
+
+        # Pit stops (available from 2012 onwards)
+        if season >= 2012:
+            pit_stops_df = self.fetch_pit_stops(season, round_num)
+            if not pit_stops_df.empty:
+                race_data['pit_stops'] = pit_stops_df
+
+        # Lap times (sample only due to API limitations)
+        lap_times_df = self.fetch_lap_times(season, round_num)
+        if not lap_times_df.empty:
+            race_data['lap_times'] = lap_times_df
+
+        return race_data
+
+    def _save_dataset(self, data_list: List[pd.DataFrame], filename: str, description: str):
+        """Combine and save a list of dataframes."""
+        if data_list:
+            combined_df = pd.concat(data_list, ignore_index=True)
+            save_dataframe(combined_df, self.raw_data_path / filename)
+            self.logger.info(f"Saved {len(combined_df)} {description}")
+
     def fetch_all_data(self, start_year: int, end_year: int):
         """
         Fetch all available data for specified seasons.
@@ -327,54 +361,24 @@ class ErgastAPIClient:
                 # Fetch race-specific data
                 for _, race in races_df.iterrows():
                     round_num = race['round']
+                    race_data = self._collect_race_data(season, round_num)
 
-                    # Results
-                    results_df = self.fetch_results(season, round_num)
-                    if not results_df.empty:
-                        all_results.append(results_df)
-
-                    # Qualifying
-                    qualifying_df = self.fetch_qualifying(season, round_num)
-                    if not qualifying_df.empty:
-                        all_qualifying.append(qualifying_df)
-
-                    # Pit stops (available from 2012 onwards)
-                    if season >= 2012:
-                        pit_stops_df = self.fetch_pit_stops(season, round_num)
-                        if not pit_stops_df.empty:
-                            all_pit_stops.append(pit_stops_df)
-
-                    # Lap times (sample only due to API limitations)
-                    lap_times_df = self.fetch_lap_times(season, round_num)
-                    if not lap_times_df.empty:
-                        all_lap_times.append(lap_times_df)
+                    if 'results' in race_data:
+                        all_results.append(race_data['results'])
+                    if 'qualifying' in race_data:
+                        all_qualifying.append(race_data['qualifying'])
+                    if 'pit_stops' in race_data:
+                        all_pit_stops.append(race_data['pit_stops'])
+                    if 'lap_times' in race_data:
+                        all_lap_times.append(race_data['lap_times'])
 
         # Combine all data
         self.logger.info("Combining data...")
 
-        if all_races:
-            races_combined = pd.concat(all_races, ignore_index=True)
-            save_dataframe(races_combined, self.raw_data_path / 'races.csv')
-            self.logger.info(f"Saved {len(races_combined)} races")
-
-        if all_results:
-            results_combined = pd.concat(all_results, ignore_index=True)
-            save_dataframe(results_combined, self.raw_data_path / 'results.csv')
-            self.logger.info(f"Saved {len(results_combined)} race results")
-
-        if all_qualifying:
-            qualifying_combined = pd.concat(all_qualifying, ignore_index=True)
-            save_dataframe(qualifying_combined, self.raw_data_path / 'qualifying.csv')
-            self.logger.info(f"Saved {len(qualifying_combined)} qualifying results")
-
-        if all_pit_stops:
-            pit_stops_combined = pd.concat(all_pit_stops, ignore_index=True)
-            save_dataframe(pit_stops_combined, self.raw_data_path / 'pit_stops.csv')
-            self.logger.info(f"Saved {len(pit_stops_combined)} pit stops")
-
-        if all_lap_times:
-            lap_times_combined = pd.concat(all_lap_times, ignore_index=True)
-            save_dataframe(lap_times_combined, self.raw_data_path / 'lap_times.csv')
-            self.logger.info(f"Saved {len(lap_times_combined)} lap times")
+        self._save_dataset(all_races, 'races.csv', 'races')
+        self._save_dataset(all_results, 'results.csv', 'race results')
+        self._save_dataset(all_qualifying, 'qualifying.csv', 'qualifying results')
+        self._save_dataset(all_pit_stops, 'pit_stops.csv', 'pit stops')
+        self._save_dataset(all_lap_times, 'lap_times.csv', 'lap times')
 
         self.logger.info("Data collection completed!")
