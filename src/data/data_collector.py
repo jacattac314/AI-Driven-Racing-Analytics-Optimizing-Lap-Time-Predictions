@@ -1,6 +1,7 @@
 """Data collection from Ergast F1 API"""
 
 import time
+import hashlib
 import requests
 import pandas as pd
 from pathlib import Path
@@ -24,12 +25,17 @@ class ErgastAPIClient:
         self.base_url = config['data']['api']['base_url']
         self.rate_limit = config['data']['api']['rate_limit']
         self.timeout = config['data']['api']['timeout']
-        self.cache_enabled = config['data']['api']['cache_enabled']
+        self.cache_enabled = config.get('data', {}).get('api', {}).get('cache_enabled', False)
         self.retry_attempts = config['data']['api']['retry_attempts']
         self.retry_delay = config['data']['api']['retry_delay']
 
         self.raw_data_path = Path(config['data']['paths']['raw'])
         self.raw_data_path.mkdir(parents=True, exist_ok=True)
+
+        # Setup cache directory
+        self.cache_dir = Path(config.get('data', {}).get('paths', {}).get('cache', 'data/cache'))
+        if self.cache_enabled:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.logger = setup_logger(__name__, 'logs/data_collector.log')
 
@@ -47,6 +53,11 @@ class ErgastAPIClient:
 
         self.last_request_time = time.time()
 
+    def _get_cache_path(self, url: str) -> Path:
+        """Get cache file path for a URL."""
+        url_hash = hashlib.md5(url.encode('utf-8')).hexdigest()
+        return self.cache_dir / f"{url_hash}.json"
+
     def _make_request(self, url: str) -> Optional[Dict]:
         """
         Make HTTP request with retry logic.
@@ -57,13 +68,29 @@ class ErgastAPIClient:
         Returns:
             JSON response or None on failure
         """
+        if self.cache_enabled:
+            cache_path = self._get_cache_path(url)
+            if cache_path.exists():
+                try:
+                    return load_json(str(cache_path))
+                except (OSError, IOError) as e:
+                    self.logger.warning(f"Failed to load cache for {url}: {e}")
+
         self._rate_limit_sleep()
 
         for attempt in range(self.retry_attempts):
             try:
                 response = requests.get(url, timeout=self.timeout)
                 response.raise_for_status()
-                return response.json()
+                data = response.json()
+
+                if self.cache_enabled:
+                    try:
+                        save_json(data, str(cache_path))
+                    except (OSError, IOError) as e:
+                        self.logger.warning(f"Failed to save cache for {url}: {e}")
+
+                return data
 
             except requests.exceptions.RequestException as e:
                 self.logger.warning(
