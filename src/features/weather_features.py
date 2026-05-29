@@ -7,9 +7,6 @@ import numpy as np
 class WeatherFeatureEngineer:
     """Generate weather-related features"""
 
-    def __init__(self):
-        pass
-
     def create_weather_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Create weather-related features.
