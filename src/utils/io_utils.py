@@ -37,17 +37,47 @@ def load_json(filepath: str) -> Dict:
         return json.load(f)
 
 
+class RestrictedUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        # Allowlist to prevent arbitrary code execution
+        # Allow builtins, pandas, numpy, and common ML modules
+        safe_modules = {
+            'pandas', 'numpy', 'sklearn', 'xgboost', 'scipy', 'statsmodels',
+            'datetime', 'collections', 'uuid', 'decimal', 'math', 're', 'copyreg'
+        }
+
+        # Determine base module name
+        base_module = module.split('.')[0]
+
+        # We explicitly block dangerous builtins and allow safe ones
+        if module == "builtins":
+            if name in ("eval", "exec", "compile", "getattr", "setattr", "delattr", "open", "__import__", "globals", "locals", "vars", "type", "memoryview", "classmethod", "staticmethod", "property", "super", "callable", "dir", "exit", "quit", "breakpoint"):
+                raise pickle.UnpicklingError(f"Builtin '{name}' is forbidden")
+            # For builtins, we allow common types implicitly
+            import builtins
+            return getattr(builtins, name)
+
+        if base_module in safe_modules or base_module == "src":
+            import importlib
+            try:
+                mod = importlib.import_module(module)
+                return getattr(mod, name)
+            except (ImportError, AttributeError):
+                raise pickle.UnpicklingError(f"Global '{module}.{name}' not found")
+
+        # Deny all other modules
+        raise pickle.UnpicklingError(f"Global '{module}.{name}' is forbidden")
+
 def save_pickle(obj: Any, filepath: str):
     """Save object to pickle file."""
     Path(filepath).parent.mkdir(parents=True, exist_ok=True)
     with open(filepath, 'wb') as f:
         pickle.dump(obj, f)
 
-
 def load_pickle(filepath: str) -> Any:
-    """Load object from pickle file."""
+    """Load object from pickle file securely."""
     with open(filepath, 'rb') as f:
-        return pickle.load(f)
+        return RestrictedUnpickler(f).load()
 
 
 def save_dataframe(df: pd.DataFrame, filepath: str, **kwargs):
