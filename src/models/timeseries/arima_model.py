@@ -1,7 +1,6 @@
 """ARIMA time-series model implementation"""
 
 import numpy as np
-import pandas as pd
 from pmdarima import auto_arima
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from src.models.base_model import BaseModel
