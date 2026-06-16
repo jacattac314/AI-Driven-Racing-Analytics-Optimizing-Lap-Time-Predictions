@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 from tqdm import tqdm
 
 from src.utils.logging_utils import setup_logger
-from src.utils.io_utils import save_dataframe, load_json, save_json
+from src.utils.io_utils import save_dataframe, load_json
 
 
 class ErgastAPIClient:
