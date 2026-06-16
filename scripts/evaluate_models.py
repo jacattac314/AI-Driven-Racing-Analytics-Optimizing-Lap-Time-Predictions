@@ -56,6 +56,7 @@ def main():
                     from tensorflow import keras
                     model = keras.models.load_model(str(model_dir / 'model.h5'))
                 else:
+                    # Security: Only load joblib/pickle files from trusted sources
                     model = joblib.load(str(model_dir / 'model.pkl'))
 
                 models[model_name] = type('Model', (), {'predict': lambda self, X: model.predict(X), 'get_model': lambda self: model})()
