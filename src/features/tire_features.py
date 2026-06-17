@@ -20,12 +20,12 @@ class TireFeatureEngineer:
         df = df.copy()
 
         # If pit stop data is available
-        if 'stop' in df.columns:
+        if "stop" in df.columns:
             # Number of stops
-            df['num_pit_stops'] = df['stop']
+            df["num_pit_stops"] = df["stop"]
 
             # Stint number (which stint the driver is currently in)
-            df['stint_number'] = df['stop'] + 1
+            df["stint_number"] = df["stop"] + 1
 
         return df
 
@@ -44,13 +44,13 @@ class TireFeatureEngineer:
         # This requires pit stop data merged with lap data
         # Simplified version: assume tire age based on laps since pit stop
 
-        if 'lap' in df.columns and 'stop' in df.columns:
+        if "lap" in df.columns and "stop" in df.columns:
             # Calculate laps since last pit stop
-            df = df.sort_values(['driver_id', 'season', 'round', 'lap'])
+            df = df.sort_values(["driver_id", "season", "round", "lap"])
 
             # This is simplified - actual tire age would need pit stop lap info
             # Placeholder: assume fresh tires every 20 laps
-            df['estimated_tire_age'] = df['lap'] % 20
+            df["estimated_tire_age"] = df["lap"] % 20
 
         return df
 

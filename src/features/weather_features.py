@@ -7,9 +7,6 @@ import numpy as np
 class WeatherFeatureEngineer:
     """Generate weather-related features"""
 
-    def __init__(self):
-        pass
-
     def create_weather_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Create weather-related features.
@@ -27,16 +24,18 @@ class WeatherFeatureEngineer:
         df = df.copy()
 
         # Date-based features (proxy for season/weather)
-        if 'date' in df.columns:
-            df['date_parsed'] = pd.to_datetime(df['date'], errors='coerce')
-            df['month'] = df['date_parsed'].dt.month
-            df['day_of_year'] = df['date_parsed'].dt.dayofyear
+        if "date" in df.columns:
+            df["date_parsed"] = pd.to_datetime(df["date"], errors="coerce")
+            df["month"] = df["date_parsed"].dt.month
+            df["day_of_year"] = df["date_parsed"].dt.dayofyear
 
             # Season (meteorological)
-            df['season_weather'] = df['month'].apply(self._get_season)
+            df["season_weather"] = df["month"].apply(self._get_season)
 
             # One-hot encode season
-            season_dummies = pd.get_dummies(df['season_weather'], prefix='weather_season')
+            season_dummies = pd.get_dummies(
+                df["season_weather"], prefix="weather_season"
+            )
             df = pd.concat([df, season_dummies], axis=1)
 
         return df
@@ -53,13 +52,13 @@ class WeatherFeatureEngineer:
             Season name
         """
         if month in [3, 4, 5]:
-            return 'spring'
+            return "spring"
         elif month in [6, 7, 8]:
-            return 'summer'
+            return "summer"
         elif month in [9, 10, 11]:
-            return 'autumn'
+            return "autumn"
         else:
-            return 'winter'
+            return "winter"
 
     def create_location_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -74,8 +73,8 @@ class WeatherFeatureEngineer:
         df = df.copy()
 
         # Country encoding (proxy for climate)
-        if 'country' in df.columns:
-            df['country_encoded'] = pd.Categorical(df['country']).codes
+        if "country" in df.columns:
+            df["country_encoded"] = pd.Categorical(df["country"]).codes
 
         return df
 
