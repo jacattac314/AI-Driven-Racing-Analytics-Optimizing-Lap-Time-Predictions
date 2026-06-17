@@ -118,6 +118,45 @@ class FeatureEngineer:
 
         return feature_cols
 
+    def _remove_missing_targets(self, X: pd.DataFrame, y: pd.Series) -> tuple:
+        """Remove rows with missing target values."""
+        valid_idx = y.notna()
+        return X[valid_idx], y[valid_idx]
+
+    def _handle_missing_values(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Handle missing and infinite values in feature DataFrame."""
+        # Fill missing values in features
+        # Numeric columns: fill with median
+        numeric_cols = X.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            if X[col].isna().any():
+                X[col].fillna(X[col].median(), inplace=True)
+
+        # Remove columns with all NaN
+        X = X.dropna(axis=1, how='all')
+
+        # Remove columns with high missing percentage (>50%)
+        missing_pct = X.isna().mean()
+        cols_to_keep = missing_pct[missing_pct < 0.5].index
+        X = X[cols_to_keep]
+
+        # Fill remaining missing values with 0
+        X = X.fillna(0)
+
+        # Remove infinite values
+        X = X.replace([np.inf, -np.inf], 0)
+
+        return X
+
+    def _perform_feature_selection(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
+        """Perform optional feature selection."""
+        self.logger.info("Performing feature selection")
+        selected_features = self.feature_selector.select_features(
+            X, y, method='importance'
+        )
+        self.logger.info(f"Selected {len(selected_features)} features")
+        return X[selected_features]
+
     def prepare_features_for_modeling(self, df: pd.DataFrame,
                                      target_col: str = 'lap_time_seconds',
                                      select_features: bool = False) -> tuple:
@@ -142,41 +181,16 @@ class FeatureEngineer:
         y = df[target_col].copy()
 
         # Remove rows with missing target
-        valid_idx = y.notna()
-        X = X[valid_idx]
-        y = y[valid_idx]
+        X, y = self._remove_missing_targets(X, y)
 
-        # Fill missing values in features
-        # Numeric columns: fill with median
-        numeric_cols = X.select_dtypes(include=[np.number]).columns
-        for col in numeric_cols:
-            if X[col].isna().any():
-                X[col].fillna(X[col].median(), inplace=True)
-
-        # Remove columns with all NaN
-        X = X.dropna(axis=1, how='all')
-
-        # Remove columns with high missing percentage (>50%)
-        missing_pct = X.isna().mean()
-        cols_to_keep = missing_pct[missing_pct < 0.5].index
-        X = X[cols_to_keep]
-
-        # Fill remaining missing values with 0
-        X = X.fillna(0)
-
-        # Remove infinite values
-        X = X.replace([np.inf, -np.inf], 0)
+        # Handle missing values and infinite values
+        X = self._handle_missing_values(X)
 
         self.logger.info(f"Features prepared: {X.shape[0]} samples, {X.shape[1]} features")
 
         # Feature selection (optional)
         if select_features:
-            self.logger.info("Performing feature selection")
-            selected_features = self.feature_selector.select_features(
-                X, y, method='importance'
-            )
-            X = X[selected_features]
-            self.logger.info(f"Selected {len(selected_features)} features")
+            X = self._perform_feature_selection(X, y)
 
         return X, y, X.columns.tolist()
 
