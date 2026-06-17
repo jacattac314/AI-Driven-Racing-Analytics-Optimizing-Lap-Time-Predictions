@@ -1,7 +1,6 @@
 """Time-series aware data splitting"""
 
 import pandas as pd
-import numpy as np
 from typing import Tuple
 from src.utils.logging_utils import setup_logger
 
