@@ -8,9 +8,6 @@ from typing import Dict
 class DriverFeatureEngineer:
     """Generate driver-related features"""
 
-    def __init__(self):
-        pass
-
     def create_career_stats(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Create cumulative career statistics for each driver.
