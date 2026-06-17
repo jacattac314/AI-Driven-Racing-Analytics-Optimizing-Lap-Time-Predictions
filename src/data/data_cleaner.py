@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List
+from typing import Dict
 from src.utils.logging_utils import setup_logger
 from src.data.data_validator import DataValidator
 
