@@ -3,7 +3,7 @@
 data:
   # Ergast F1 API Configuration
   api:
-    base_url: "http://ergast.com/api/f1"
+    base_url: "https://ergast.com/api/f1"
     rate_limit: 4  # requests per second
     timeout: 30  # seconds
     cache_enabled: true
