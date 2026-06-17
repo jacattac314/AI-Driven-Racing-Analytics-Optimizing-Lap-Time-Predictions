@@ -260,41 +260,46 @@ class ErgastAPIClient:
         Returns:
             DataFrame with lap times
         """
-        # Note: Ergast API requires lap-by-lap queries for lap times
-        # This is a simplified version that fetches all laps
-
         all_laps = []
 
-        # First, get the number of laps in the race
-        results_df = self.fetch_results(season, round_num)
-        if results_df.empty:
-            return pd.DataFrame()
+        # Ergast API has a hard limit of 1000 items per request, so pagination is needed
+        offset = 0
+        limit = 1000
 
-        max_laps = results_df['laps'].max()
-
-        # Fetch lap times lap by lap (this is limited by API)
-        # Due to API limitations, we'll fetch a sample of laps
-        lap_sample = [1, 10, 20, 30, 40, 50, 60, max_laps]
-        lap_sample = [lap for lap in lap_sample if lap <= max_laps]
-
-        for lap in lap_sample:
-            url = f"{self.base_url}/{season}/{round_num}/laps/{lap}.json?limit=100"
+        while True:
+            url = f"{self.base_url}/{season}/{round_num}/laps.json?limit={limit}&offset={offset}"
             data = self._make_request(url)
 
-            if data and 'MRData' in data:
-                races = data['MRData']['RaceTable']['Races']
-                if races and 'Laps' in races[0]:
-                    laps = races[0]['Laps'][0]['Timings']
+            if not data or 'MRData' not in data:
+                break
 
-                    for timing in laps:
+            races = data['MRData']['RaceTable']['Races']
+            if not races or 'Laps' not in races[0]:
+                break
+
+            laps = races[0]['Laps']
+            if not laps:
+                break
+
+            for lap_data in laps:
+                lap_num = int(lap_data['number'])
+
+                if 'Timings' in lap_data:
+                    for timing in lap_data['Timings']:
                         all_laps.append({
                             'season': season,
                             'round': round_num,
-                            'lap': lap,
+                            'lap': lap_num,
                             'driver_id': timing['driverId'],
                             'position': int(timing['position']),
                             'time': timing['time']
                         })
+
+            # Check if we've fetched all results
+            total = int(data['MRData'].get('total', 0))
+            offset += limit
+            if offset >= total:
+                break
 
         return pd.DataFrame(all_laps)
 
